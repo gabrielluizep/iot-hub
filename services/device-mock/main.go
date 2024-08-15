@@ -1,59 +1,45 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
-	"log"
-	"net/url"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-func connect(clientId string, uri *url.URL) mqtt.Client {
-	opts := createClientOptions(clientId, uri)
-	client := mqtt.NewClient(opts)
-	token := client.Connect()
-
-	for !token.WaitTimeout(3 * time.Second) {
-	}
-
-	if err := token.Error(); err != nil {
-		log.Fatal(err)
-	}
-
-	return client
-}
-
-func createClientOptions(clientId string, uri *url.URL) *mqtt.ClientOptions {
-	opts := mqtt.NewClientOptions()
-	password, _ := uri.User.Password()
-
-	opts.AddBroker(fmt.Sprintf("tcp://%s", uri.Host))
-	opts.SetUsername(uri.User.Username())
-	opts.SetPassword(password)
-	opts.SetClientID(clientId)
-
-	return opts
-}
-
-func listen(uri *url.URL, topic string) {
-	client := connect("sub", uri)
-	client.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
-		fmt.Printf("* [%s] %s\n", msg.Topic(), string(msg.Payload()))
-	})
-}
-
 func main() {
-	uri, err := url.Parse("mqtt://localhost:1883")
-	if err != nil {
-		log.Fatal(err)
+	fmt.Println("Initializing publisher")
+
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true, // Set to false in production to verify the server's certificate
+		ClientAuth:         tls.NoClientCert,
 	}
 
-	topic := "readings"
+	opts := mqtt.NewClientOptions().
+		AddBroker("ssl://8f6cec80afc747f49167bf47720d82e8.s1.eu.hivemq.cloud:8883").
+		SetClientID("publisher").
+		SetUsername("mock").
+		SetPassword("ne#`%I<^N3bX-:03,fb0Yx]fP7)n9=ELR#>oV6yrnZ~>eZ,fiI").
+		SetTLSConfig(tlsConfig)
 
-	client := connect("pub", uri)
-	timer := time.NewTicker(1 * time.Second)
-	for t := range timer.C {
-		client.Publish(topic, 0, false, t.String())
+	c := mqtt.NewClient(opts)
+	if token := c.Connect(); token.Wait() && token.Error() != nil {
+		panic(token.Error())
 	}
+	fmt.Println("Connected to MQTT broker")
+
+	topic := "test/topic"
+	payload := "Hello, this is a test message!"
+
+	token := c.Publish(topic, 0, false, payload)
+	token.Wait()
+
+	fmt.Printf("Published message to topic: %s => Message: %s\n", topic, payload)
+
+	// Wait for a moment before disconnecting to ensure the message is sent
+	time.Sleep(1 * time.Second)
+
+	c.Disconnect(250)
+	fmt.Println("Disconnected from MQTT broker")
 }
