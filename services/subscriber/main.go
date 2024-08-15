@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,7 +11,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/joho/godotenv"
-	"github.com/supabase-community/supabase-go"
+	_ "github.com/lib/pq"
 )
 
 // Data structure to represent the incoming data
@@ -22,8 +23,8 @@ type SensorData struct {
 	Luminosity  float64 `json:"luminosity"`
 }
 
-// Supabase client
-var supabaseClient *supabase.Client
+// Connection string
+var connStr string
 
 func msgRcvd(client mqtt.Client, message mqtt.Message) {
 	fmt.Printf("Received message on topic: %s => Message: %s\n", message.Topic(), message.Payload())
@@ -36,14 +37,19 @@ func msgRcvd(client mqtt.Client, message mqtt.Message) {
 		return
 	}
 
-	// Insert data into the Supabase table
-	_, _, err = supabaseClient.From("sensor_data").Insert(sensorData, true, "", "", "").Execute()
+	// Insert data into the psql database
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		fmt.Println("Error inserting data into Supabase:", err)
-		return
+		log.Fatalf("Error opening database: %v", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("INSERT INTO sensor_data (timestamp, temperature, humidity, luminosity) VALUES ($1, $2, $3, $4)", sensorData.Timestamp, sensorData.Temperature, sensorData.Humidity, sensorData.Luminosity)
+	if err != nil {
+		log.Fatalf("Error inserting data: %v", err)
 	}
 
-	fmt.Println("Data successfully stored in Supabase")
+	fmt.Println("Data successfully stored in database")
 }
 
 func main() {
@@ -59,13 +65,20 @@ func main() {
 	username := os.Getenv("MQTT_USERNAME")
 	password := os.Getenv("MQTT_PASSWORD")
 	topic := os.Getenv("MQTT_TOPIC")
-	supabaseURL := os.Getenv("SUPABASE_URL")
-	supabaseKey := os.Getenv("SUPABASE_KEY")
 
-	// Initialize Supabase client
-	supabaseClient, err = supabase.NewClient(supabaseURL, supabaseKey, nil)
+	// Connection string
+	connStr = "postgresql://postgres:u00ths5w83oiqyUD@tangibly-colossal-wildfowl.data-1.use1.tembo.io:5432/postgres"
+
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		fmt.Println("cannot initalize client", err)
+		log.Fatalf("Error opening database: %v", err)
+	}
+	defer db.Close()
+
+	// create table for sensor_data
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS sensor_data (id SERIAL PRIMARY KEY, timestamp BIGINT, temperature DOUBLE PRECISION, humidity DOUBLE PRECISION, luminosity DOUBLE PRECISION)")
+	if err != nil {
+		log.Fatalf("Error creating table: %v", err)
 	}
 
 	fmt.Println("Initializing subscriber")
