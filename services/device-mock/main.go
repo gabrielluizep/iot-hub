@@ -25,7 +25,7 @@ func main() {
 	clientID := os.Getenv("MQTT_CLIENT_ID")
 	username := os.Getenv("MQTT_USERNAME")
 	password := os.Getenv("MQTT_PASSWORD")
-	topic := os.Getenv("MQTT_TOPIC")
+	topic := os.Getenv("MQTT_READINGS_TOPIC")
 
 	fmt.Println("Initializing publisher")
 
@@ -57,7 +57,7 @@ func main() {
 	humidity := rand.Float64() * 100
 	luminosity := rand.Float64() * 100
 	timestamp := time.Now().Unix() // Use int64 for the Unix timestamp
-	id := rand.Intn(1000)          // id should remain as an int
+	id := 1                        // id should remain as an int
 
 	// Create a map to hold the data with the correct types
 	data := map[string]interface{}{
@@ -78,7 +78,7 @@ func main() {
 	token = c.Publish(topic, 0, false, string(jsonData))
 	token.Wait()
 
-	fmt.Printf("Published message to topic: %s => Message: %s\n", topic, string(jsonData))
+	fmt.Printf("Message sent (%s): %s\n", topic, string(jsonData))
 
 	// Wait for a moment before disconnecting to ensure the message is sent
 	time.Sleep(1 * time.Second)

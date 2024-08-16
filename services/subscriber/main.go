@@ -44,9 +44,10 @@ func msgRcvd(client mqtt.Client, message mqtt.Message) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("INSERT INTO sensor_data (timestamp, temperature, humidity, luminosity) VALUES ($1, $2, $3, $4)", sensorData.Timestamp, sensorData.Temperature, sensorData.Humidity, sensorData.Luminosity)
+	_, err = db.Exec(`INSERT INTO sensor_data (id, timestamp, temperature, humidity, luminosity) VALUES ($1, $2, $3, $4, $5)`, sensorData.ID, sensorData.Timestamp, sensorData.Temperature, sensorData.Humidity, sensorData.Luminosity)
 	if err != nil {
-		log.Fatalf("Error inserting data: %v", err)
+		fmt.Println("Error inserting data into database:", err)
+		return
 	}
 
 	fmt.Println("Data successfully stored in database")
@@ -64,10 +65,10 @@ func main() {
 	clientID := os.Getenv("MQTT_CLIENT_ID")
 	username := os.Getenv("MQTT_USERNAME")
 	password := os.Getenv("MQTT_PASSWORD")
-	topic := os.Getenv("MQTT_TOPIC")
+	topic := os.Getenv("MQTT_READINGS_TOPIC")
 
 	// Connection string
-	connStr = "postgresql://postgres:u00ths5w83oiqyUD@tangibly-colossal-wildfowl.data-1.use1.tembo.io:5432/postgres"
+	connStr = os.Getenv("POSTGRES_CONN_STR")
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -76,7 +77,13 @@ func main() {
 	defer db.Close()
 
 	// create table for sensor_data
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS sensor_data (id SERIAL PRIMARY KEY, timestamp BIGINT, temperature DOUBLE PRECISION, humidity DOUBLE PRECISION, luminosity DOUBLE PRECISION)")
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS sensor_data (
+						id INT, 
+						timestamp BIGINT, 
+						temperature DOUBLE PRECISION, 
+						humidity DOUBLE PRECISION, 
+						luminosity DOUBLE PRECISION, 
+						PRIMARY KEY (id, timestamp))`)
 	if err != nil {
 		log.Fatalf("Error creating table: %v", err)
 	}

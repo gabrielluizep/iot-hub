@@ -2,10 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -18,9 +21,32 @@ type SensorData struct {
 	Luminosity  float64 `json:"luminosity"`
 }
 
+// parseDate attempts to parse a date string using multiple formats.
+func parseDate(dateStr string) (time.Time, error) {
+	formats := []string{
+		"2006-01-02",          // Format for date only
+		"2006-01-02T15:04:05", // Format for date and time
+	}
+
+	var t time.Time
+	var err error
+	for _, format := range formats {
+		t, err = time.Parse(format, dateStr)
+		if err == nil {
+			return t, nil
+		}
+	}
+	return t, err
+}
+
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
 	// Connection string
-	connStr := "postgresql://postgres:u00ths5w83oiqyUD@tangibly-colossal-wildfowl.data-1.use1.tembo.io:5432/postgres"
+	connStr := os.Getenv("POSTGRES_CONN_STR")
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -42,26 +68,27 @@ func main() {
 	})
 
 	router.GET("/sensor-data", func(c *gin.Context) {
-		// // start and end query parameters for pagination
-		// start := c.Query("start")
-		// end := c.Query("end")
+		startStr := c.DefaultQuery("start", "2000-01-01")
+		endStr := c.DefaultQuery("end", "2100-01-01")
 
-		// // parse to int
-		// startTime, err := time.Parse("2006-01-02", start)
-		// if err != nil {
-		// 	log.Fatalf("Error parsing start date: %v", err)
-		// }
-		// startUnix := startTime.Unix()
+		// Parse the start and end parameters using the parseDate function
+		startTime, err := parseDate(startStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid start date"})
+			return
+		}
+		endTime, err := parseDate(endStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid end date"})
+			return
+		}
 
-		// endTime, err := time.Parse("2006-01-02", end)
-		// if err != nil {
-		// 	log.Fatalf("Error parsing end date: %v", err)
-		// }
-		// endUnix := endTime.Unix()
+		// Convert to Unix timestamps
+		startUnix := startTime.Unix()
+		endUnix := endTime.Unix()
 
-		// query data from sensor_data
-		// rows, err := db.Query("SELECT * FROM sensor_data WHERE timestamp >= $1 AND timestamp <= $2", startUnix, endUnix)
-		rows, err := db.Query("SELECT * FROM sensor_data")
+		// Corrected SQL query with PostgreSQL syntax
+		rows, err := db.Query("SELECT * FROM sensor_data WHERE timestamp >= $1 AND timestamp <= $2", startUnix, endUnix)
 		if err != nil {
 			log.Fatalf("Error querying data: %v", err)
 		}
@@ -74,8 +101,6 @@ func main() {
 			if err != nil {
 				log.Fatalf("Error scanning row: %v", err)
 			}
-
-			fmt.Printf("Sensor Data: %+v\n", data)
 
 			sensorData = append(sensorData, data)
 		}
