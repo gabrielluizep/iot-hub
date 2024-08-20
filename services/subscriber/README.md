@@ -1,4 +1,4 @@
-# API Service
+# Subscriber Service
 
 ```bash
 # Carregue as variáveis de ambiente

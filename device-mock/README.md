@@ -1,4 +1,4 @@
-# API Service
+# Device Mock
 
 ```bash
 # Carregue as variáveis de ambiente

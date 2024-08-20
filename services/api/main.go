@@ -227,5 +227,6 @@ func main() {
 		c.JSON(200, sensorData)
 	})
 
-	router.Run("localhost:8080")
+	port := os.Getenv("PORT")
+	router.Run(":" + port)
 }
