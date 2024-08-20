@@ -51,7 +51,7 @@ func parseDate(dateStr string) (time.Time, error) {
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file")
+		fmt.Println("Error loading .env file")
 	}
 
 	// Connection string
