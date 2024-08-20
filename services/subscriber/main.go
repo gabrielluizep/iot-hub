@@ -10,7 +10,6 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -54,12 +53,6 @@ func msgRcvd(client mqtt.Client, message mqtt.Message) {
 }
 
 func main() {
-	// Load environment variables from .env file
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Error loading .env file")
-	}
-
 	// Retrieve environment variables
 	broker := os.Getenv("MQTT_BROKER")
 	clientID := os.Getenv("MQTT_CLIENT_ID")

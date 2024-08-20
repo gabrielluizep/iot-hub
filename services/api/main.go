@@ -13,7 +13,6 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -49,11 +48,6 @@ func parseDate(dateStr string) (time.Time, error) {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Error loading .env file")
-	}
-
 	// Connection string
 	connStr := os.Getenv("POSTGRES_CONN_STR")
 
