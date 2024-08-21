@@ -12,21 +12,21 @@ const char* ssid = "Casa da Injecao";
 const char* password = "eronildo";
 
 // MQTT Broker settings
-const char* mqtt_server = ""; // MQTT broker IP from .env
-const int mqtt_port = 8883;  // Port for SSL/TLS
-const char* mqtt_username = ""; // MQTT username from .env
-const char* mqtt_password = ""; // MQTT password from .env
-const char* mqtt_client_id = ""; // MQTT client ID
+const char* mqtt_server = getenv("MQTT_BROKER");
+const int mqtt_port = getenv("MQTT_PORT");
+const char* mqtt_username = getenv("MQTT_USERNAME");
+const char* mqtt_password = getenv("MQTT_PASSWORD");
+const char* mqtt_client_id = getenv("MQTT_CLIENT_ID");
 const char* topic = "sensor/readings";
 
 // DHT Sensor configuration
 #define LDRPIN 15  
-#define DHTPIN 12  // GPIO pin where the DHT sensor is connected
+#define DHTPIN 4  // GPIO pin where the DHT sensor is connected
 #define DHTTYPE DHT11  // DHT 22 (AM2302)
 DHT dht(DHTPIN, DHTTYPE);
 
-// Replace with your root CA certificate
-const char* rootCACertificate = ""; // Root CA certificate from `echo | openssl s_client -connect <mqtt_broker>:<port> -showcerts`
+// Get the root CA certificate from file
+const char* rootCACertificate = 
 
 
 // Initialize WiFiClientSecure
@@ -73,24 +73,11 @@ void loop() {
     float humidity = dht.readHumidity();
     float luminosity = analogRead(LDRPIN);
 
-    if(isnan(temperature)) {
-        Serial.println("Failed to read temperature from DHT sensor!");
+    if(isnan(temperature) || isnan(humidity) || isnan(luminosity)) {
+        Serial.println("Failed to read sensor data");
         return;
     }
-    Serial.printf("Temperature: %.2f°C\n", temperature);
-
-    if(isnan(humidity)) {
-        Serial.println("Failed to read humidity from DHT sensor!");
-        return;
-    }
-    Serial.printf("Humidity: %.2f%%\n", humidity);
-
-    if(isnan(luminosity)) {
-        Serial.println("Failed to read luminosity from LDR sensor!");
-        return;
-    }
-    Serial.printf("Luminosity: %.2f\n", luminosity);
-    return;
+    Serial.printf("Temperature: %.2f °C\n; Humidity: %.2f %%\n; Luminosity: %d\n", temperature, humidity, luminosity);
 
     long timestamp = time(nullptr);
 
