@@ -195,7 +195,7 @@ func main() {
 		var sensorData SensorData
 		for rows.Next() {
 			var data SensorData
-			err := rows.Scan(&data.ID, &data.Timestamp, &data.Temperature, &data.Humidity, &data.Luminosity)
+			err := rows.Scan(&data.ID, &data.Timestamp, &data.Temperature, &data.Humidity, &data.Luminosity, &data.LightOn)
 			if err != nil {
 				log.Fatalf("Error scanning row: %v", err)
 			}
@@ -268,7 +268,7 @@ func main() {
 		var sensorData []SensorData
 		for rows.Next() {
 			var data SensorData
-			err := rows.Scan(&data.ID, &data.Timestamp, &data.Temperature, &data.Humidity, &data.Luminosity)
+			err := rows.Scan(&data.ID, &data.Timestamp, &data.Temperature, &data.Humidity, &data.Luminosity, &data.LightOn)
 			if err != nil {
 				log.Fatalf("Error scanning row: %v", err)
 			}
