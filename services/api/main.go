@@ -136,7 +136,7 @@ func main() {
 
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://127.0.0.1:5173", "http://localhost:5173", "https://pji2.gabrielluizep.dev"},
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST"},
 		AllowHeaders:     []string{"Origin"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -149,7 +149,7 @@ func main() {
 
 	// add default headers
 	router.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "https://pji2.gabrielluizep.dev")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Next()
 	})
 
