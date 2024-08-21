@@ -29,6 +29,9 @@ type LightOn struct {
 	LightOn bool `json:"lightOn"`
 }
 
+// Connection string
+var connStr string
+
 // parseDate attempts to parse a date string using multiple formats.
 func parseDate(dateStr string) (time.Time, error) {
 	formats := []string{
@@ -47,9 +50,41 @@ func parseDate(dateStr string) (time.Time, error) {
 	return t, err
 }
 
+func msgRcvd(client mqtt.Client, message mqtt.Message) {
+	fmt.Printf("Received message on topic: %s => Message: %s\n", message.Topic(), message.Payload())
+
+	// Parse JSON data
+	var sensorData SensorData
+	err := json.Unmarshal(message.Payload(), &sensorData)
+	if err != nil {
+		fmt.Println("Error parsing JSON data:", err)
+		return
+	}
+
+	// Insert data into the psql database
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		log.Fatalf("Error opening database: %v", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec(`INSERT INTO sensor_data (id, timestamp, temperature, humidity, luminosity, light_on) VALUES ($1, $2, $3, $4, $5, false)`, sensorData.ID, sensorData.Timestamp, sensorData.Temperature, sensorData.Humidity, sensorData.Luminosity)
+	if err != nil {
+		fmt.Println("Error inserting data into database:", err)
+		return
+	}
+
+	fmt.Println("Data successfully stored in database")
+}
+
 func main() {
-	// Connection string
-	connStr := os.Getenv("POSTGRES_CONN_STR")
+	// Retrieve environment variables
+	broker := os.Getenv("MQTT_BROKER")
+	clientID := os.Getenv("MQTT_CLIENT_ID")
+	username := os.Getenv("MQTT_USERNAME")
+	password := os.Getenv("MQTT_PASSWORD")
+	topic := os.Getenv("MQTT_READINGS_TOPIC")
+	connStr = os.Getenv("POSTGRES_CONN_STR")
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -58,18 +93,17 @@ func main() {
 	defer db.Close()
 
 	// create table for sensor_data
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS sensor_data (id SERIAL PRIMARY KEY, timestamp BIGINT, temperature DOUBLE PRECISION, humidity DOUBLE PRECISION, luminosity DOUBLE PRECISION)")
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS sensor_data (
+		id INT, 
+		timestamp BIGINT, 
+		temperature DOUBLE PRECISION, 
+		humidity DOUBLE PRECISION, 
+		luminosity DOUBLE PRECISION,
+		light_on BOOLEAN,
+		PRIMARY KEY (id, timestamp))`)
 	if err != nil {
 		log.Fatalf("Error creating table: %v", err)
 	}
-
-	// Retrieve environment variables
-	broker := os.Getenv("MQTT_BROKER")
-	clientID := os.Getenv("MQTT_CLIENT_ID")
-	username := os.Getenv("MQTT_USERNAME")
-	password := os.Getenv("MQTT_PASSWORD")
-
-	fmt.Println("Initializing publisher")
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true, // Set to false in production to verify the server's certificate
@@ -88,6 +122,17 @@ func main() {
 		panic(token.Error())
 	}
 	fmt.Println("Connected to MQTT broker")
+
+	if token := mqttContext.Connect(); token.Wait() && token.Error() != nil {
+		panic(token.Error())
+	}
+	fmt.Println("Connected to MQTT broker")
+
+	if token := mqttContext.Subscribe(topic, 0, msgRcvd); token.Wait() && token.Error() != nil {
+		fmt.Println(token.Error())
+	} else {
+		fmt.Println("Subscribed to topic:", topic)
+	}
 
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
