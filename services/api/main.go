@@ -149,7 +149,7 @@ func main() {
 
 	// add default headers
 	router.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5173, http://localhost:5173, https://pji2.gabrielluizep.dev")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "https://pji2.gabrielluizep.dev")
 		c.Next()
 	})
 
