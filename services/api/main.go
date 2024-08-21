@@ -23,6 +23,7 @@ type SensorData struct {
 	Temperature float64 `json:"temperature"`
 	Humidity    float64 `json:"humidity"`
 	Luminosity  float64 `json:"luminosity"`
+	LightOn     bool    `json:"lightOn"`
 }
 
 type LightOn struct {
