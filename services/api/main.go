@@ -147,6 +147,12 @@ func main() {
 		MaxAge: 12 * time.Hour,
 	}))
 
+	// add default headers
+	router.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5173, http://localhost:5173, https://pji2.gabrielluizep.dev")
+		c.Next()
+	})
+
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "Hello World",
