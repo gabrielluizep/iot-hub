@@ -138,8 +138,8 @@ func main() {
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST"},
-		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowMethods:     []string{"GET", "POST", "OPTIONS"},                  // Ensure OPTIONS is allowed
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"}, // Include any headers that your requests use
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		AllowOriginFunc: func(origin string) bool {
