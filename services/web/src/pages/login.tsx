@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { getSensorData, getSensors, postSensorLight } from '@/lib/api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery ,useMutation} from '@tanstack/react-query';
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
@@ -20,12 +20,13 @@ export function MainPage() {
     enabled: !!selectedSensor,
   });
 
-  // mutate to send a POST request to the server
-  const toggleLight = () => {
-    postSensorLight(selectedSensor!, !sensorData.at(-1).lightOn);
-  };
-
+  
   const lastReading = sensorData?.length > 0 ? sensorData.at(-1) : null;
+  
+  // mutate to send a POST request to the server
+  const {mutate} = useMutation({
+    mutationFn: () => postSensorLight(selectedSensor!, lastReading.lightOn),
+  });
 
   return (
     <div className="flex h-dvh">
@@ -48,7 +49,7 @@ export function MainPage() {
             {lastReading && (
             <>
                 <p>Estado da luz: {lastReading.lightOn ? "ligada" : "desligada"}</p>
-              <Button size='sm' onClick={toggleLight}>Alterar estado</Button>
+              <Button size='sm' onClick={mutate}>Alterar estado</Button>
             </>
             )}
           </div>
